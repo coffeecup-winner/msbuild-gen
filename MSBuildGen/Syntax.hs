@@ -1,11 +1,13 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
 module MSBuildGen.Syntax where
 
 import Control.Monad.Free
 
 import MSBuildGen.Types
 
-class Functor a => Conditionable a where
-    condition :: MSBuildCondition -> Free a () -> () -> a ()
+class Functor ctx => Conditionable ctx where
+    condition :: MSBuildCondition -> Free ctx () -> () -> ctx ()
 
 instance Conditionable ProjectContent where
     condition = Cond
@@ -13,17 +15,32 @@ instance Conditionable ProjectContent where
 instance Conditionable PropertyGroupContent where
     condition = PropertyCondition
 
+instance Conditionable ItemDefinitionContent where
+    condition = MetadataCondition
+
+class Functor ctx => Assignable lhs rhs ctx where
+    (=:) :: lhs -> rhs -> Free ctx ()
+
+instance (Property p, Value v) => Assignable p v PropertyGroupContent where
+    (=:) p v = liftF $ PropertyAssignment (toMSBuildProperty p) (toMSBuildValue v) ()
+
+instance (ItemMetadata m, Value v) => Assignable m v ItemDefinitionContent where
+    (=:) m v = liftF $ MetadataAssignment (toMSBuildItemMetadata m) (toMSBuildValue v) ()
+
 project :: String -> ProjectContext -> Project
 project = Project
 
 propertyGroup :: PropertyGroupContext -> ProjectContext
 propertyGroup p = liftF $ PropertyGroup p ()
 
-(=:) :: (Property p, Value v) => p -> v -> PropertyGroupContext
-p =: v = liftF $ Assignment (toMSBuildProperty p) (toMSBuildValue v) ()
+(=?) :: (Assignable lhs rhs ctx, Condition lhs, Conditionable ctx) => lhs -> rhs -> Free ctx ()
+lhs =? rhs = (lhs === "") ? (lhs =: rhs)
 
-(=?) :: (Property p, Value v) => p -> v -> PropertyGroupContext
-p =? v = (toMSBuildProperty p === "") ? (p =: v)
+itemDefinitionGroup :: ItemDefinitionGroupContext -> ProjectContext
+itemDefinitionGroup g = liftF $ ItemDefinitionGroup g ()
+
+item :: (Item i) => i -> ItemDefinitionContext -> ItemDefinitionGroupContext
+item i c = liftF $ ItemDefinition (toMSBuildItem i) c ()
 
 (|||) :: (Condition a, Condition b) => a -> b -> MSBuildCondition
 a ||| b = Or (toMSBuildCondition a) (toMSBuildCondition b)

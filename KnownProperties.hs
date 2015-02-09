@@ -53,6 +53,8 @@ data KnownProperty = TargetExt
                    | IgnoreImportLibrary
                    | GenerateManifest
                    | Platform
+                   | IntDir
+                   | EmbedManifestBy
 
 instance Property KnownProperty where
     toMSBuildProperty TargetExt = Property String "TargetExt"
@@ -106,6 +108,8 @@ instance Property KnownProperty where
     toMSBuildProperty IgnoreImportLibrary = Property Bool "IgnoreImportLibrary"
     toMSBuildProperty GenerateManifest = Property Bool "GenerateManifest"
     toMSBuildProperty Platform = Property String "Platform"
+    toMSBuildProperty IntDir = Property Path "IntDir"
+    toMSBuildProperty EmbedManifestBy = Property String "EmbedManifestBy"
 
 instance Value KnownProperty where
     toMSBuildValue = toMSBuildValue . toMSBuildProperty

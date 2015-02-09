@@ -6,20 +6,30 @@ import Control.Monad.Free
 
 type ProjectContext = Free ProjectContent ()
 type PropertyGroupContext = Free PropertyGroupContent ()
+type ItemDefinitionGroupContext = Free ItemDefinitionGroupContent ()
+type ItemDefinitionContext = Free ItemDefinitionContent ()
 type SwitchContext = Free SwitchCase ()
 
 data Project = Project String ProjectContext
 
 data ProjectContent next = Import MSBuildValue next
                          | PropertyGroup PropertyGroupContext next
+                         | ItemDefinitionGroup ItemDefinitionGroupContext next
                          | ItemGroup next
                          | Target next
                          | Cond MSBuildCondition ProjectContext next
                          deriving (Show, Functor)
 
-data PropertyGroupContent next = Assignment MSBuildProperty MSBuildValue next
+data PropertyGroupContent next = PropertyAssignment MSBuildProperty MSBuildValue next
                                | PropertyCondition MSBuildCondition PropertyGroupContext next
                                deriving (Show, Functor)
+
+data ItemDefinitionGroupContent next = ItemDefinition MSBuildItem ItemDefinitionContext next
+                                     deriving (Show, Functor)
+
+data ItemDefinitionContent next = MetadataAssignment MSBuildItemMetadata MSBuildValue next
+                                | MetadataCondition MSBuildCondition ItemDefinitionContext next
+                                deriving (Show, Functor)
 
 data SwitchCase next = SwitchCase { caseKey :: MSBuildValue
                                   , caseValue :: MSBuildValue
@@ -33,10 +43,22 @@ data Type = String
           deriving (Show)
 
 data MSBuildProperty = Property Type String
-              deriving (Show)
+                     deriving (Show)
 
 class Property a where
     toMSBuildProperty :: a -> MSBuildProperty
+
+data MSBuildItem = Item String
+                 deriving (Show)
+
+class Item a where
+    toMSBuildItem :: a -> MSBuildItem
+
+data MSBuildItemMetadata = ItemMetadata Type String
+                         deriving (Show)
+
+class ItemMetadata a where
+    toMSBuildItemMetadata :: a -> MSBuildItemMetadata
 
 data MSBuildValue = StringValue String
            | ListValue [String]
@@ -65,6 +87,7 @@ instance Value MSBuildValue where
 
 data MSBuildCondition = Leaf String
                     | PropertyRef MSBuildProperty
+                    | MetadataRef MSBuildItemMetadata
                     | ValueRef MSBuildValue
                     | Or MSBuildCondition MSBuildCondition
                     | And MSBuildCondition MSBuildCondition
@@ -81,6 +104,9 @@ instance Condition [Char] where
 
 instance Condition MSBuildProperty where
     toMSBuildCondition = PropertyRef
+
+instance Condition MSBuildItemMetadata where
+    toMSBuildCondition = MetadataRef
 
 instance Condition MSBuildValue where
     toMSBuildCondition = ValueRef
