@@ -213,13 +213,12 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
             ReferenceOutputAssembly =: True
             CopyLocalSatelliteAssemblies =: True
 
-    -- <ItemGroup>
-    --     -- <!--  Unique items for the project-->
-    --     <CustomBuildStep Include="$(ProjectName)" />
-    --     <PreBuildEvent Include="$(ProjectName)" />
-    --     <PreLinkEvent Include="$(ProjectName)" />
-    --     <PostBuildEvent Include="$(ProjectName)" />
-    -- </ItemGroup>
+    itemGroup $ do
+        -- <!--  Unique items for the project-->
+        CustomBuildStep <: ProjectName
+        PreBuildEvent <: ProjectName
+        PreLinkEvent <: ProjectName
+        PostBuildEvent <: ProjectName
 
     -- <!-- Import Platform specific settings -->
     (Platform !== "" &&& exists (VCTargetsPath \\ "Platforms" \\ Platform \\ "Microsoft.Cpp.$(Platform).props")) ? do

@@ -54,8 +54,11 @@ a === b = Equal (toMSBuildCondition a) (toMSBuildCondition b)
 (!==) :: (Condition a, Condition b) => a -> b -> MSBuildCondition
 a !== b = NotEqual (toMSBuildCondition a) (toMSBuildCondition b)
 
-itemGroup :: ProjectContext
-itemGroup = liftF $ ItemGroup ()
+itemGroup :: ItemGroupContext -> ProjectContext
+itemGroup g = liftF $ ItemGroup g ()
+
+(<:) :: (Item i, Value v) => i -> v -> ItemGroupContext
+i <: v = liftF $ ItemInclude (toMSBuildItem i) (toMSBuildValue v) ()
 
 include :: Value v => v -> ProjectContext
 include v = liftF $ Import (toMSBuildValue v) ()
@@ -74,6 +77,8 @@ infixr 3 &&&
 infix 4 ===
 infix 4 !==
 infix 8 =:
+infix 8 =?
+infix 8 <:
 infix 9 ?
 
 switch :: (Property p) => p -> String -> SwitchContext -> PropertyGroupContext

@@ -18,7 +18,7 @@ genContent :: ProjectContext -> [Content]
 genContent (Free (Import s next)) = element "Import" [attr "Project" $ render () s] [] : genContent next
 genContent (Free (PropertyGroup p next)) = element "PropertyGroup" [] (genPropertyGroup p) : genContent next
 genContent (Free (ItemDefinitionGroup g next)) = element "ItemDefinitionGroup" [] (genItemDefinitionGroup g) : genContent next
-genContent (Free (ItemGroup next)) = genContent next
+genContent (Free (ItemGroup g next)) = element "ItemGroup" [] (genItemGroup g) : genContent next
 genContent (Free (Target next)) = genContent next
 genContent (Free (Cond c p next)) = genContent' c p ++ genContent next
 genContent (Pure _) = []
@@ -26,7 +26,7 @@ genContent (Pure _) = []
 genContent' :: MSBuildCondition -> ProjectContext -> [Content]
 genContent' c (Free (Import s next)) = element "Import" [attr "Project" $ render () s, attr "Condition" $ render () c] [] : genContent next
 genContent' c (Free (PropertyGroup p next)) = element "PropertyGroup" [attr "Condition" $ render () c] (genPropertyGroup p) : genContent next
-genContent' _ (Free (ItemGroup next)) = genContent next
+genContent' c (Free (ItemGroup g next)) = element "ItemGroup" [attr "Condition" $ render () c] (genItemGroup g) : genContent next
 genContent' _ (Free (Target next)) = genContent next
 genContent' _ (Pure _) = []
 
@@ -50,6 +50,10 @@ genItemDefinition _ (Pure _) = []
 
 genItemDefinition' :: MSBuildItem -> MSBuildCondition -> ItemDefinitionContext -> [Content]
 genItemDefinition' i c (Free (MetadataAssignment m v next)) = element (render () m) [attr "Condition" $ render i c] [text $ render () v] : genItemDefinition i next
+
+genItemGroup :: ItemGroupContext -> [Content]
+genItemGroup (Free (ItemInclude i v next)) = element (render () i) [attr "Include" $ render () v] [] : genItemGroup next
+genItemGroup (Pure _) = []
 
 class Render a b where
     render :: a -> b -> String

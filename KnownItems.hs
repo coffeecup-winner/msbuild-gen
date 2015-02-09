@@ -15,6 +15,9 @@ data KnownItem = CustomBuild
                | ProjectReference
                | Reference
                | COMReference
+               | PreBuildEvent
+               | PreLinkEvent
+               | PostBuildEvent
 
 instance Item KnownItem where
     toMSBuildItem CustomBuild = Item "CustomBuild"
@@ -30,6 +33,9 @@ instance Item KnownItem where
     toMSBuildItem ProjectReference = Item "ProjectReference"
     toMSBuildItem Reference = Item "Reference"
     toMSBuildItem COMReference = Item "COMReference"
+    toMSBuildItem PreBuildEvent = Item "PreBuildEvent"
+    toMSBuildItem PreLinkEvent = Item "PreLinkEvent"
+    toMSBuildItem PostBuildEvent = Item "PostBuildEvent"
 
 data KnownItemMetadata = Message
                        | TrackerLogDirectory

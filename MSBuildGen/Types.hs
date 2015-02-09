@@ -8,6 +8,7 @@ type ProjectContext = Free ProjectContent ()
 type PropertyGroupContext = Free PropertyGroupContent ()
 type ItemDefinitionGroupContext = Free ItemDefinitionGroupContent ()
 type ItemDefinitionContext = Free ItemDefinitionContent ()
+type ItemGroupContext = Free ItemGroupContent ()
 type SwitchContext = Free SwitchCase ()
 
 data Project = Project String ProjectContext
@@ -15,7 +16,7 @@ data Project = Project String ProjectContext
 data ProjectContent next = Import MSBuildValue next
                          | PropertyGroup PropertyGroupContext next
                          | ItemDefinitionGroup ItemDefinitionGroupContext next
-                         | ItemGroup next
+                         | ItemGroup ItemGroupContext next
                          | Target next
                          | Cond MSBuildCondition ProjectContext next
                          deriving (Show, Functor)
@@ -30,6 +31,9 @@ data ItemDefinitionGroupContent next = ItemDefinition MSBuildItem ItemDefinition
 data ItemDefinitionContent next = MetadataAssignment MSBuildItemMetadata MSBuildValue next
                                 | MetadataCondition MSBuildCondition ItemDefinitionContext next
                                 deriving (Show, Functor)
+
+data ItemGroupContent next = ItemInclude MSBuildItem MSBuildValue next
+                           deriving (Show, Functor)
 
 data SwitchCase next = SwitchCase { caseKey :: MSBuildValue
                                   , caseValue :: MSBuildValue
