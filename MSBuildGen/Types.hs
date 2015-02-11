@@ -106,6 +106,10 @@ class Condition a where
 instance Condition [Char] where
     toMSBuildCondition = Leaf
 
+instance Condition Bool where
+    toMSBuildCondition True = Leaf "true"
+    toMSBuildCondition False = Leaf "false"
+
 instance Condition MSBuildProperty where
     toMSBuildCondition = PropertyRef
 

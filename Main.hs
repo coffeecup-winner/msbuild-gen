@@ -40,7 +40,7 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
             LinkCompiled =: True
             -- <!-- $(GenerateImportLib) should be set to true when you want to generate the import library as part of the BuildCompile pass rather than wait
             --      until the BuildLink pass for Linker to generate it. This allows circular dependencies between dlls to be satisfied when building using passes -->
-            (GenerateImportLib === "true") ? do
+            (GenerateImportLib === True) ? do
                 ImpLibCompiled =: True
             TargetExt =: ".dll"
             OutputType =: "library"
@@ -114,10 +114,10 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
         DocumentLibraryDependencies =? True
 
         -- <!-- CLR enabled -->
-        (EnableManagedIncrementalBuild === "" &&& CLRSupport !== "" &&& CLRSupport !== "false") ? do
+        (EnableManagedIncrementalBuild === "" &&& CLRSupport !== "" &&& CLRSupport !== False) ? do
             EnableManagedIncrementalBuild =: True
         EnableManagedIncrementalBuild =? False
-        (IgnoreImportLibrary === "" &&& CLRSupport !== "" &&& CLRSupport !== "false") ? do
+        (IgnoreImportLibrary === "" &&& CLRSupport !== "" &&& CLRSupport !== False) ? do
             IgnoreImportLibrary =: True
         IgnoreImportLibrary =? False
         GenerateManifest =? True
@@ -132,7 +132,7 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
             MinimalRebuildFromTracking =? True
             OutputFile =? "$(OutDir)$(TargetName)$(TargetExt)"
             SuppressStartupBanner =? True
-            AcceptableNonZeroExitCodes =? "$(AcceptableNonZeroExitCodes)"
+            AcceptableNonZeroExitCodes_Metadata =? AcceptableNonZeroExitCodes
         item Midl $ do
             TypeLibraryName =? "$(IntDir)$(ProjectName).tlb"
             TargetEnvironment =? "Win32"
@@ -141,7 +141,7 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
             SuppressStartupBanner =? True
             TrackerLogDirectory =? IntDir
             MinimalRebuildFromTracking =? True
-            AcceptableNonZeroExitCodes =? "$(AcceptableNonZeroExitCodes)"
+            AcceptableNonZeroExitCodes_Metadata =? AcceptableNonZeroExitCodes
             IgnoreStandardIncludePath =? False
             WarnAsError =? False
             GenerateTypeLibrary =? True
@@ -157,18 +157,18 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
             Culture =? "0x0409"
             TrackerLogDirectory =? IntDir
             MinimalRebuildFromTracking =? True
-            AcceptableNonZeroExitCodes =? "$(AcceptableNonZeroExitCodes)"
+            AcceptableNonZeroExitCodes_Metadata =? AcceptableNonZeroExitCodes
         item Manifest $ do
             TrackerLogDirectory =? IntDir
             MinimalRebuildFromTracking =? True
             SuppressStartupBanner =? True
-            AcceptableNonZeroExitCodes =? "$(AcceptableNonZeroExitCodes)"
+            AcceptableNonZeroExitCodes_Metadata =? AcceptableNonZeroExitCodes
             VerboseOutput =? True
             GenerateCatalogFiles =? False
             UpdateFileHashes =? False
-            (EmbedManifest === "false") ? do
+            (EmbedManifest === False) ? do
                 OutputManifestFile =: "$(TargetPath).manifest"
-            (EmbedManifest === "true" &&& EmbedManifestBy === "LINK") ? do
+            (EmbedManifest === True &&& EmbedManifestBy === "LINK") ? do
                 OutputManifestFile =: "$(IntDir)$(TargetName)$(TargetExt).embed.manifest"
         item ManifestResourceCompile $ do
             ResourceOutputFileName =? "$(IntDir)$(TargetName)$(TargetExt).embed.manifest.res"
@@ -177,7 +177,7 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
             MinimalRebuildFromTracking =? True
             SuppressStartupBanner =? True
             OutputFile =? "$(OutDir)$(TargetName).xml"
-            AcceptableNonZeroExitCodes =? "$(AcceptableNonZeroExitCodes)"
+            AcceptableNonZeroExitCodes_Metadata =? AcceptableNonZeroExitCodes
             UseUnicodeResponseFiles =? True
             ValidateIntelliSense =? False
         item BscMake $ do
@@ -186,7 +186,7 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
             SuppressStartupBanner =? True
             PreserveSBR =? False
             OutputFile =? "$(OutDir)$(TargetName).bsc"
-            AcceptableNonZeroExitCodes =? "$(AcceptableNonZeroExitCodes)"
+            AcceptableNonZeroExitCodes_Metadata =? AcceptableNonZeroExitCodes
         item XSD $ do
             TrackerLogDirectory =? IntDir
             MinimalRebuildFromTracking =? True
@@ -194,11 +194,11 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
             Language_Metadata =? "cpp"
             Namespace =? TargetName
             GenerateFromSchema =? "dataset"
-            AcceptableNonZeroExitCodes =? "$(AcceptableNonZeroExitCodes)"
+            AcceptableNonZeroExitCodes_Metadata =? AcceptableNonZeroExitCodes
         item CustomBuild $ do
             TrackerLogDirectory =? IntDir
             MinimalRebuildFromTracking =? True
-            AcceptableNonZeroExitCodes =? "$(AcceptableNonZeroExitCodes)"
+            AcceptableNonZeroExitCodes_Metadata =? AcceptableNonZeroExitCodes
         item ProjectReference $ do
             (LinkLibraryDependencies === "" &&& ConfigurationType === "StaticLibrary") ? do
                 LinkLibraryDependencies =: False
