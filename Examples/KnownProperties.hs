@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
-module KnownProperties where
+module Examples.KnownProperties where
 
 import MSBuildGen.DSL.Properties
 
@@ -57,3 +57,27 @@ string "Platform"
 path "IntDir"
 string "EmbedManifestBy"
 list "AcceptableNonZeroExitCodes"
+string "PlatformToolset"
+string "Configuration"
+path "OutputPath"
+path "OutDir"
+path "MSBuildProjectName"
+path "AssemblyName"
+path "ProjectFileName"
+path "MSBuildProjectFile"
+path "ProjectExt"
+path "MSBuildProjectExtension"
+path "MSBuildProjectDirectory"
+path "ProjectPath"
+string "PlatformName"
+path "SolutionDir"
+path "UserRootDir"
+path "LocalAppData"
+list "MSBuildAllProjects"
+bool "WholeProgramOptimizationDelayImport"
+bool "WholeProgramOptimization"
+bool "UseOfATL"
+bool "UseOfMFC"
+bool "SQLDebugging"
+bool "Attach"
+bool "BuildingInsideVisualStudio"

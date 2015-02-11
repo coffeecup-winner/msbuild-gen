@@ -18,14 +18,20 @@ instance Conditionable PropertyGroupContent where
 instance Conditionable ItemDefinitionContent where
     condition = MetadataCondition
 
+instance Conditionable TargetContent where
+    condition = TargetCondition
+
 class Functor ctx => Assignable lhs rhs ctx where
     (=:) :: lhs -> rhs -> Free ctx ()
 
 instance (Property p, Value v) => Assignable p v PropertyGroupContent where
-    (=:) p v = liftF $ PropertyAssignment (toMSBuildProperty p) (toMSBuildValue v) ()
+    p =: v = liftF $ PropertyAssignment (toMSBuildProperty p) (toMSBuildValue v) ()
 
 instance (ItemMetadata m, Value v) => Assignable m v ItemDefinitionContent where
-    (=:) m v = liftF $ MetadataAssignment (toMSBuildItemMetadata m) (toMSBuildValue v) ()
+    m =: v = liftF $ MetadataAssignment (toMSBuildItemMetadata m) (toMSBuildValue v) ()
+
+instance (TaskParameter p, Value v) => Assignable p v TaskContent where
+    p =: v = liftF $ TaskParameterAssignment (toMSBuildTaskParameter p) (toMSBuildValue v) ()
 
 project :: String -> ProjectContext -> Project
 project = Project
@@ -63,9 +69,6 @@ i <: v = liftF $ ItemInclude (toMSBuildItem i) (toMSBuildValue v) ()
 include :: Value v => v -> ProjectContext
 include v = liftF $ Import (toMSBuildValue v) ()
 
-target :: ProjectContext
-target = liftF $ Target ()
-
 exists :: Value v => v -> MSBuildCondition
 exists = Exists . toMSBuildValue
 
@@ -96,3 +99,11 @@ a \\ b = go (toMSBuildValue a) (toMSBuildValue b)
           go va (PathValue bs) = PathValue (va : bs)
           go va vb = PathValue [va, vb]
 
+using :: Task t => t -> String -> ProjectContext
+using t s = liftF $ UsingTask (toMSBuildTask t) s ()
+
+target :: Target t => t -> TargetContext -> ProjectContext
+target t c = liftF $ TargetDefinition (toMSBuildTarget t) c ()
+
+run :: Task t => t -> TaskContext -> TargetContext
+run t c = liftF $ RunTask (toMSBuildTask t) c ()

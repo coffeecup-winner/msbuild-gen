@@ -19,7 +19,8 @@ genContent (Free (Import s next)) = element "Import" [attr "Project" $ render ()
 genContent (Free (PropertyGroup p next)) = element "PropertyGroup" [] (genPropertyGroup p) : genContent next
 genContent (Free (ItemDefinitionGroup g next)) = element "ItemDefinitionGroup" [] (genItemDefinitionGroup g) : genContent next
 genContent (Free (ItemGroup g next)) = element "ItemGroup" [] (genItemGroup g) : genContent next
-genContent (Free (Target next)) = genContent next
+genContent (Free (UsingTask t s next)) = element "UsingTask" [attr "TaskName" $ render () t, attr "AssemblyName" s] [] : genContent next
+genContent (Free (TargetDefinition n t next)) = element "Target" [attr "Name" $ render () n] (genTarget t) : genContent next
 genContent (Free (Cond c p next)) = genContent' c p ++ genContent next
 genContent (Pure _) = []
 
@@ -27,7 +28,7 @@ genContent' :: MSBuildCondition -> ProjectContext -> [Content]
 genContent' c (Free (Import s next)) = element "Import" [attr "Project" $ render () s, attr "Condition" $ render () c] [] : genContent next
 genContent' c (Free (PropertyGroup p next)) = element "PropertyGroup" [attr "Condition" $ render () c] (genPropertyGroup p) : genContent next
 genContent' c (Free (ItemGroup g next)) = element "ItemGroup" [attr "Condition" $ render () c] (genItemGroup g) : genContent next
-genContent' _ (Free (Target next)) = genContent next
+genContent' _ (Free (TargetDefinition n t next)) = element "Target" [attr "Name" $ render () n] (genTarget t) : genContent next
 genContent' _ (Pure _) = []
 
 genPropertyGroup :: PropertyGroupContext -> [Content]
@@ -54,6 +55,19 @@ genItemDefinition' i c (Free (MetadataAssignment m v next)) = element (render ()
 genItemGroup :: ItemGroupContext -> [Content]
 genItemGroup (Free (ItemInclude i v next)) = element (render () i) [attr "Include" $ render () v] [] : genItemGroup next
 genItemGroup (Pure _) = []
+
+genTarget :: TargetContext -> [Content]
+genTarget (Free (RunTask n t next)) = element (render () n) (genTask t) [] : genTarget next
+genTarget (Free (TargetCondition c t next)) = genTarget' c t ++ genTarget next
+genTarget (Pure _) = []
+
+genTarget' :: MSBuildCondition -> TargetContext -> [Content]
+genTarget' c (Free (RunTask n t next)) = element (render () n) ((attr "Condition" $ render () c) : genTask t) [] : genTarget next
+genTarget' _ (Pure _) = []
+
+genTask :: TaskContext -> [Attr]
+genTask (Free (TaskParameterAssignment p v next)) = attr (render () p) (render () v) : genTask next
+genTask (Pure _) = []
 
 class Render a b where
     render :: a -> b -> String
@@ -85,6 +99,15 @@ instance Render () MSBuildCondition where
     render () (Equal a b) = "'" ++ render () a ++ "' == '" ++ render () b ++ "'"
     render () (NotEqual a b) = "'" ++ render () a ++ "' != '" ++ render () b ++ "'"
     render () (Exists s) = "exists('" ++ render () s ++ "')"
+
+instance Render () MSBuildTarget where
+    render () (Target t) = t
+
+instance Render () MSBuildTask where
+    render () (Task t) = t
+
+instance Render () MSBuildTaskParameter where
+    render () (TaskParameter _ p) = p
 
 instance Render MSBuildItem MSBuildCondition where
     render _ (Leaf s) = s

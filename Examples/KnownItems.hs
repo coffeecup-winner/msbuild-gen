@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
-module KnownItems where
+module Examples.KnownItems where
 
 import MSBuildGen.DSL.Items
 
@@ -19,6 +19,7 @@ items [ "CustomBuild"
       , "PreBuildEvent"
       , "PreLinkEvent"
       , "PostBuildEvent"
+      , "BuildLog"
       ]
 
 string "Message"
@@ -58,3 +59,4 @@ bool "ReferenceOutputAssembly"
 bool "Private"
 bool "CopyLocalSatelliteAssemblies"
 customString "Language_Metadata" "Language"
+customPath "Path_Metadata" "Path"
