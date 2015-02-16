@@ -1,5 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 module MSBuildGen.DSL.Targets ( target
+                              , customTarget
                               , task
                               , string
                               , list
@@ -17,12 +18,15 @@ import MSBuildGen.DSL.Core
 import MSBuildGen.Types
 
 target :: String -> DecsQ
-target n = simpleData n $ targetInstances n
+target n = customTarget n n
 
-targetInstances :: String -> DecsQ
-targetInstances n = [d| instance Target $(targetType) where toMSBuildTarget _ = Target $(targetNameExp) |]
+customTarget :: String -> String -> DecsQ
+customTarget n v = simpleData n $ targetInstances n v
+
+targetInstances :: String -> String -> DecsQ
+targetInstances n v = [d| instance Target $(targetType) where toMSBuildTarget _ = Target $(targetNameExp) |]
     where targetType = conT $ mkName n
-          targetNameExp = litE $ stringL n
+          targetNameExp = litE $ stringL v
 
 task :: String -> DecsQ
 task n = simpleData n $ taskInstances n

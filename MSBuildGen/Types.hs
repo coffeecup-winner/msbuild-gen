@@ -35,11 +35,21 @@ data ItemDefinitionContent next = MetadataAssignment MSBuildItemMetadata MSBuild
                                 | MetadataCondition MSBuildCondition ItemDefinitionContext next
                                 deriving (Show, Functor)
 
-data ItemGroupContent next = ItemInclude MSBuildItem MSBuildValue next
+data ItemGroupContent next = ItemInclude MSBuildItem MSBuildValue (Maybe ItemDefinitionContext) next
+                           | ItemRemove MSBuildItem MSBuildValue next
+                           | ItemCondition MSBuildCondition ItemGroupContext next
                            deriving (Show, Functor)
 
 data TargetContent next = RunTask MSBuildTask TaskContext next
                         | TargetCondition MSBuildCondition TargetContext next
+                        | TargetBeforeTargets MSBuildValue next
+                        | TargetAfterTargets MSBuildValue next
+                        | TargetDependsOn MSBuildValue next
+                        | TargetInputs MSBuildValue next
+                        | TargetOutputs MSBuildValue next
+                        | TargetReturns MSBuildValue next
+                        | TargetPropertyGroup PropertyGroupContext next
+                        | TargetItemGroup ItemGroupContext next
                         deriving (Show, Functor)
 
 data TaskContent next = TaskParameterAssignment MSBuildTaskParameter MSBuildValue next
@@ -79,6 +89,7 @@ data MSBuildValue = StringValue String
                   | PathValue [MSBuildValue]
                   | BoolValue Bool
                   | PropertyValue MSBuildProperty
+                  | ItemValue MSBuildItem
                   deriving (Show)
 
 class Value a where
@@ -101,6 +112,7 @@ instance Value MSBuildValue where
 
 data MSBuildCondition = Leaf String
                     | PropertyRef MSBuildProperty
+                    | ItemRef MSBuildItem
                     | MetadataRef MSBuildItemMetadata
                     | ValueRef MSBuildValue
                     | Or MSBuildCondition MSBuildCondition
@@ -122,6 +134,9 @@ instance Condition Bool where
 
 instance Condition MSBuildProperty where
     toMSBuildCondition = PropertyRef
+
+instance Condition MSBuildItem where
+    toMSBuildCondition = ItemRef
 
 instance Condition MSBuildItemMetadata where
     toMSBuildCondition = MetadataRef

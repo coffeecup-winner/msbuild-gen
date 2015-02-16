@@ -18,6 +18,9 @@ instance Conditionable PropertyGroupContent where
 instance Conditionable ItemDefinitionContent where
     condition = MetadataCondition
 
+instance Conditionable ItemGroupContent where
+    condition = ItemCondition
+
 instance Conditionable TargetContent where
     condition = TargetCondition
 
@@ -33,11 +36,20 @@ instance (ItemMetadata m, Value v) => Assignable m v ItemDefinitionContent where
 instance (TaskParameter p, Value v) => Assignable p v TaskContent where
     p =: v = liftF $ TaskParameterAssignment (toMSBuildTaskParameter p) (toMSBuildValue v) ()
 
+class Functor ctx => DefinitionContext ctx where
+    propertyGroup :: PropertyGroupContext -> Free ctx ()
+    itemGroup :: ItemGroupContext -> Free ctx ()
+
+instance DefinitionContext ProjectContent where
+    propertyGroup g = liftF $ PropertyGroup g ()
+    itemGroup g = liftF $ ItemGroup g ()
+
+instance DefinitionContext TargetContent where
+    propertyGroup g = liftF $ TargetPropertyGroup g ()
+    itemGroup g = liftF $ TargetItemGroup g ()
+
 project :: String -> ProjectContext -> Project
 project = Project
-
-propertyGroup :: PropertyGroupContext -> ProjectContext
-propertyGroup p = liftF $ PropertyGroup p ()
 
 (=?) :: (Assignable lhs rhs ctx, Condition lhs, Conditionable ctx) => lhs -> rhs -> Free ctx ()
 lhs =? rhs = (lhs === "") ? (lhs =: rhs)
@@ -60,11 +72,14 @@ a === b = Equal (toMSBuildCondition a) (toMSBuildCondition b)
 (!==) :: (Condition a, Condition b) => a -> b -> MSBuildCondition
 a !== b = NotEqual (toMSBuildCondition a) (toMSBuildCondition b)
 
-itemGroup :: ItemGroupContext -> ProjectContext
-itemGroup g = liftF $ ItemGroup g ()
-
 (<:) :: (Item i, Value v) => i -> v -> ItemGroupContext
-i <: v = liftF $ ItemInclude (toMSBuildItem i) (toMSBuildValue v) ()
+i <: v = liftF $ ItemInclude (toMSBuildItem i) (toMSBuildValue v) Nothing ()
+
+(<:!) :: (Item i, Value v) => i -> v -> ItemDefinitionContext -> ItemGroupContext
+i <:! v = \ctx -> liftF $ ItemInclude (toMSBuildItem i) (toMSBuildValue v) (Just ctx) ()
+
+(</:) :: (Item i, Value v) => i -> v -> ItemGroupContext
+i </: v = liftF $ ItemRemove (toMSBuildItem i) (toMSBuildValue v) ()
 
 include :: Value v => v -> ProjectContext
 include v = liftF $ Import (toMSBuildValue v) ()
@@ -82,6 +97,8 @@ infix 4 !==
 infix 8 =:
 infix 8 =?
 infix 8 <:
+infix 8 <:!
+infix 8 </:
 infix 9 ?
 
 switch :: (Property p) => p -> String -> SwitchContext -> PropertyGroupContext
@@ -104,6 +121,24 @@ using t s = liftF $ UsingTask (toMSBuildTask t) s ()
 
 target :: Target t => t -> TargetContext -> ProjectContext
 target t c = liftF $ TargetDefinition (toMSBuildTarget t) c ()
+
+before :: Value v => v -> TargetContext
+before v = liftF $ TargetBeforeTargets (toMSBuildValue v) ()
+
+after :: Value v => v -> TargetContext
+after v = liftF $ TargetAfterTargets (toMSBuildValue v) ()
+
+dependsOn :: Value v => v -> TargetContext
+dependsOn v = liftF $ TargetDependsOn (toMSBuildValue v) ()
+
+inputs :: Value v => v -> TargetContext
+inputs v = liftF $ TargetInputs (toMSBuildValue v) ()
+
+outputs :: Value v => v -> TargetContext
+outputs v = liftF $ TargetOutputs (toMSBuildValue v) ()
+
+returns :: Value v => v -> TargetContext
+returns v = liftF $ TargetReturns (toMSBuildValue v) ()
 
 run :: Task t => t -> TaskContext -> TargetContext
 run t c = liftF $ RunTask (toMSBuildTask t) c ()

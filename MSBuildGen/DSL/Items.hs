@@ -23,7 +23,10 @@ item :: String -> DecsQ
 item n = simpleData n $ itemInstances n
 
 itemInstances :: String -> DecsQ
-itemInstances n = [d| instance Item $(itemType) where toMSBuildItem _ = Item $(itemNameExp) |]
+itemInstances n = [d| instance Item $(itemType) where toMSBuildItem _ = Item $(itemNameExp)
+                      instance Value $(itemType) where toMSBuildValue = ItemValue . toMSBuildItem
+                      instance Condition $(itemType) where toMSBuildCondition = ItemRef . toMSBuildItem
+                  |]
     where itemType = conT $ mkName n
           itemNameExp = litE $ stringL n
 
