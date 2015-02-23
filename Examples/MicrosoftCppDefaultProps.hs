@@ -35,14 +35,14 @@ microsoft_cpp_default_props = project "Microsoft.Cpp.Default.props" $ do
         ConfigurationType =? "Application"
 
     --   <!-- Allow platforms to define the defaults first -->
-    exists (VCTargetsPath \\ "Platforms" \\ Platform \\ "Microsoft.Cpp.$(Platform).default.props") ? do
-        include (VCTargetsPath \\ "Platforms" \\ Platform \\ "Microsoft.Cpp.$(Platform).default.props")
+    exists (VCTargetsPath \\ "Platforms" \\ Platform \\ "Microsoft.Cpp." <> Platform <> ".default.props") ? do
+        include (VCTargetsPath \\ "Platforms" \\ Platform \\ "Microsoft.Cpp." <> Platform <> ".default.props")
 
     --   <!-- Default OutputPath -->
     propertyGroup $ do
         OutputPath =? OutDir
         ("'$(OutputPath)' != '' and !HasTrailingSlash('$(OutputPath)')") ? do
-            OutputPath =: "$(OutputPath)\\"
+            OutputPath =: (OutputPath \\ "")
 
     propertyGroup $ do
         ProjectName =? MSBuildProjectName
@@ -52,15 +52,15 @@ microsoft_cpp_default_props = project "Microsoft.Cpp.Default.props" $ do
         ProjectExt =? MSBuildProjectExtension
 
         ProjectDir =? MSBuildProjectDirectory
-        ProjectPath =? "$(ProjectDir)$(ProjectFileName)"
+        ProjectPath =? (ProjectDir <> ProjectFileName)
         PlatformName =? Platform
         SolutionDir =? ProjectDir
 
         UserRootDir =? (LocalAppData \\ "Microsoft" \\ "MSBuild" \\ "v4.0")
 
-        MSBuildAllProjects =: "$(MSBuildAllProjects);$(MSBuildProjectFullPath);$(MSBuildToolsPath)\\Microsoft.Common.targets"
-        exists ("$(MSBuildProjectFullPath).user") ? do
-            MSBuildAllProjects =: "$(MSBuildAllProjects);$(MSBuildProjectFullPath).user"
+        MSBuildAllProjects =: ["$(MSBuildAllProjects)", "$(MSBuildProjectFullPath)", "$(MSBuildToolsPath)\\Microsoft.Common.targets"]
+        exists (MSBuildProjectFullPath <> ".user") ? do
+            MSBuildAllProjects =: ["$(MSBuildAllProjects)", "$(MSBuildProjectFullPath).user"]
 
         WholeProgramOptimizationDelayImport =? True
         WholeProgramOptimization =? False
@@ -72,4 +72,4 @@ microsoft_cpp_default_props = project "Microsoft.Cpp.Default.props" $ do
 
     itemDefinitionGroup $ do
         item BuildLog $ do
-            Path_Metadata =: "$(IntDir)\\$(MSBuildProjectName).log"
+            Path_Metadata =: (IntDir \\ MSBuildProjectName <> ".log")

@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 module MSBuildGen.Output where
 
@@ -60,9 +61,12 @@ genItemGroup (Free (ItemCondition c i next)) = genItemGroup' c i ++ genItemGroup
 genItemGroup (Pure _) = []
 
 genItemGroup' :: MSBuildCondition -> ItemGroupContext -> [Content]
-genItemGroup' c (Free (ItemInclude i v Nothing next)) = element (render () i) [attr "Include" $ render () v, attr "Condition" $ render i c] [] : genItemGroup next
-genItemGroup' c (Free (ItemInclude i v (Just ms) next)) = element (render () i) [attr "Include" $ render () v, attr "Condition" $ render i c] (genItemDefinition i ms) : genItemGroup next
-genItemGroup' c (Free (ItemRemove i v next)) = element (render () i) [attr "Remove" $ render () v, attr "Condition" $ render i c] [] : genItemGroup next
+genItemGroup' c (Free (ItemInclude i (ItemValue v) Nothing next)) = element (render () i) [attr "Include" $ render () v, attr "Condition" $ render v c] [] : genItemGroup next
+genItemGroup' c (Free (ItemInclude i (PropertyValue v) Nothing next)) = element (render () i) [attr "Include" $ render () v, attr "Condition" $ render () c] [] : genItemGroup next
+genItemGroup' c (Free (ItemInclude i (ItemValue v) (Just ms) next)) = element (render () i) [attr "Include" $ render () v, attr "Condition" $ render v c] (genItemDefinition i ms) : genItemGroup next
+genItemGroup' c (Free (ItemInclude i (PropertyValue v) (Just ms) next)) = element (render () i) [attr "Include" $ render () v, attr "Condition" $ render () c] (genItemDefinition i ms) : genItemGroup next
+genItemGroup' c (Free (ItemRemove i (ItemValue v) next)) = element (render () i) [attr "Remove" $ render () v, attr "Condition" $ render v c] [] : genItemGroup next
+genItemGroup' c (Free (ItemRemove i (PropertyValue v) next)) = element (render () i) [attr "Remove" $ render () v, attr "Condition" $ render () c] [] : genItemGroup next
 genItemGroup' _ (Pure _) = []
 
 genTargetAttrs :: TargetContext -> [Attr]
@@ -105,30 +109,39 @@ class Render a b where
     render :: a -> b -> String
 
 instance Render () MSBuildProperty where
-    render () (Property _ s) = s
+    render () (Property s) = s
 
 instance Render () MSBuildItem where
     render () (Item s) = s
 
 instance Render () MSBuildItemMetadata where
-    render () (ItemMetadata _ s) = s
+    render () (ItemMetadata s) = s
+
+instance Render () MSBuildPath where
+    render () (StringPath s) = s
+    render () (PropertyPath (Property n)) = "$(" ++ n ++ ")"
+    render () (MetadataPath (ItemMetadata n)) = "%(" ++ n ++ ")"
+    render () (SeparatorPath) = "\\"
+
+instance Render () [MSBuildPath] where
+    render () ps = concatMap (render ()) ps
 
 instance Render () MSBuildValue where
     render () (StringValue s) = s
     render () (ListValue ss) = intercalate ";" ss
-    render () (PathValue ps) = intercalate "\\" $ fmap (render ()) ps
+    render () (PathValue ps) = render () ps
     render () (BoolValue True) = "true"
     render () (BoolValue False) = "false"
-    render () (PropertyValue (Property _ n)) = "$(" ++ n ++ ")"
+    render () (PropertyValue (Property n)) = "$(" ++ n ++ ")"
     render () (ItemValue (Item n)) = "@(" ++ n ++ ")"
 
 instance Render () MSBuildCondition where
     render () (Leaf s) = s
-    render () (PropertyRef (Property _ n)) = "$(" ++ n ++ ")"
+    render () (PropertyRef (Property n)) = "$(" ++ n ++ ")"
     render () (ItemRef (Item n)) = "@(" ++ n ++ ")"
 --    render () (MetadataRef (ItemMetadata _ n)) = "%(" ++ n ++ ")"
     render () (ValueRef v) = render () v
-    render () (Or a b) = render () a ++ " or " ++ render () b
+    render () (Or a b) = "(" ++ render () a ++ " or " ++ render () b ++ ")"
     render () (And a b) = render () a ++ " and " ++ render () b
     render () (Equal a b) = "'" ++ render () a ++ "' == '" ++ render () b ++ "'"
     render () (NotEqual a b) = "'" ++ render () a ++ "' != '" ++ render () b ++ "'"
@@ -141,15 +154,15 @@ instance Render () MSBuildTask where
     render () (Task t) = t
 
 instance Render () MSBuildTaskParameter where
-    render () (TaskParameter _ p) = p
+    render () (TaskParameter p) = p
 
 instance Render MSBuildItem MSBuildCondition where
     render _ (Leaf s) = s
-    render _ (PropertyRef (Property _ n)) = "$(" ++ n ++ ")"
+    render _ (PropertyRef (Property n)) = "$(" ++ n ++ ")"
     render _ (ItemRef (Item n)) = "@(" ++ n ++ ")"
-    render i (MetadataRef (ItemMetadata _ n)) = "%(" ++ render () i ++ "." ++ n ++ ")"
+    render i (MetadataRef (ItemMetadata n)) = "%(" ++ render () i ++ "." ++ n ++ ")"
     render _ (ValueRef v) = render () v
-    render i (Or a b) = render i a ++ " or " ++ render i b
+    render i (Or a b) = "(" ++ render i a ++ " or " ++ render i b ++ ")"
     render i (And a b) = render i a ++ " and " ++ render i b
     render i (Equal a b) = "'" ++ render i a ++ "' == '" ++ render i b ++ "'"
     render i (NotEqual a b) = "'" ++ render i a ++ "' != '" ++ render i b ++ "'"

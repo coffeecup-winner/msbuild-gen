@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 module Examples.KnownItems where
 
 import MSBuildGen.DSL.Items
@@ -69,3 +70,5 @@ string "PrecompiledHeader"
 string "Command"
 bool "ExcludedFromBuild"
 bool "GenerateXMLDocumentationFiles"
+path "Filename"
+string "Extension"

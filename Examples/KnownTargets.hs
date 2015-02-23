@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 module Examples.KnownTargets where
 
 import MSBuildGen.DSL.Targets

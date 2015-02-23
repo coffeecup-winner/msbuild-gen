@@ -43,24 +43,26 @@ bool :: String -> DecsQ
 bool n = customBool n n
 
 customString :: String -> String -> DecsQ
-customString = metadata 'String
+customString = metadata ''TString
 
 customList :: String -> String -> DecsQ
-customList = metadata 'List
+customList = metadata ''TList
 
 customPath :: String -> String -> DecsQ
-customPath = metadata 'Path
+customPath = metadata ''TPath
 
 customBool :: String -> String -> DecsQ
-customBool = metadata 'Bool
+customBool = metadata ''TBool
 
 metadata :: Name -> String -> String -> DecsQ
 metadata t n v = simpleData n $ metadataInstances t n v
 
 metadataInstances :: Name -> String -> String -> DecsQ
-metadataInstances t n v = [d| instance ItemMetadata $(metadataType) where toMSBuildItemMetadata _ = ItemMetadata $(typeExp) $(metadataNameExp)
+metadataInstances t n v = [d| instance ItemMetadata $(metadataType) where toMSBuildItemMetadata _ = ItemMetadata $(metadataNameExp)
+                              instance Path $(metadataType) where toMSBuildPath = toMSBuildPath . toMSBuildItemMetadata
                               instance Condition $(metadataType) where toMSBuildCondition = toMSBuildCondition . toMSBuildItemMetadata
+                              type instance TypeOf $(metadataType) = $(typeType)
                           |]
     where metadataType = conT $ mkName n
           metadataNameExp = litE $ stringL v
-          typeExp = conE t
+          typeType = conT t

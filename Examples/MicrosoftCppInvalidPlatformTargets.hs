@@ -28,9 +28,9 @@ microsoft_cpp_invalid_platform_targets = project "Microsoft.Cpp.InvalidPlatform.
             run VCMessage $ do
                 Code =: "MSB8006"
                 Type =: "Error"
-                Arguments =: "$(MSBuildProjectFile);$(Platform)"
+                Arguments =: ["$(MSBuildProjectFile)", "$(Platform)"]
         (BuildingInsideVisualStudio !== True) ? do
             run VCMessage $ do
                 Code =: "MSB8007"
                 Type =: "Error"
-                Arguments =: "$(MSBuildProjectFile);$(Platform)"
+                Arguments =: ["$(MSBuildProjectFile)", "$(Platform)"]

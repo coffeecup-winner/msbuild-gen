@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
 module MSBuildGen.Types where
 
 import Control.Monad.Free
@@ -15,7 +16,7 @@ type SwitchContext = Free SwitchCase ()
 
 data Project = Project String ProjectContext
 
-data ProjectContent next = Import MSBuildValue next
+data ProjectContent next = Import [MSBuildPath] next
                          | PropertyGroup PropertyGroupContext next
                          | ItemDefinitionGroup ItemDefinitionGroupContext next
                          | ItemGroup ItemGroupContext next
@@ -60,14 +61,20 @@ data SwitchCase next = SwitchCase { caseKey :: MSBuildValue
                                   , caseNext :: next
                                   } deriving (Show, Functor)
 
-data Type = String
-          | List
-          | Path
-          | Bool
-          deriving (Show)
-
-data MSBuildProperty = Property Type String
+data MSBuildProperty = Property String
                      deriving (Show)
+
+data TString
+data TList
+data TBool
+data TPath
+
+type family TypeOf a
+
+type instance TypeOf [Char] = TString
+type instance TypeOf [[Char]] = TList
+type instance TypeOf Bool = TBool
+type instance TypeOf [MSBuildPath] = TPath
 
 class Property a where
     toMSBuildProperty :: a -> MSBuildProperty
@@ -78,15 +85,36 @@ data MSBuildItem = Item String
 class Item a where
     toMSBuildItem :: a -> MSBuildItem
 
-data MSBuildItemMetadata = ItemMetadata Type String
+data MSBuildItemMetadata = ItemMetadata String
                          deriving (Show)
 
 class ItemMetadata a where
     toMSBuildItemMetadata :: a -> MSBuildItemMetadata
 
+data MSBuildPath = StringPath String
+                 | PropertyPath MSBuildProperty
+                 | MetadataPath MSBuildItemMetadata
+                 | SeparatorPath
+                 deriving (Show)
+
+class Path a where
+    toMSBuildPath :: a -> [MSBuildPath]
+
+instance Path [Char] where
+    toMSBuildPath s = [StringPath s]
+
+instance Path MSBuildProperty where
+    toMSBuildPath p = [PropertyPath p]
+
+instance Path MSBuildItemMetadata where
+    toMSBuildPath m = [MetadataPath m]
+
+instance Path [MSBuildPath] where
+    toMSBuildPath = id
+
 data MSBuildValue = StringValue String
                   | ListValue [String]
-                  | PathValue [MSBuildValue]
+                  | PathValue [MSBuildPath]
                   | BoolValue Bool
                   | PropertyValue MSBuildProperty
                   | ItemValue MSBuildItem
@@ -101,6 +129,9 @@ instance Value [Char] where
 instance Value [[Char]] where
     toMSBuildValue = ListValue
 
+instance Value [MSBuildPath] where
+    toMSBuildValue = PathValue
+
 instance Value Bool where
     toMSBuildValue = BoolValue
 
@@ -111,16 +142,16 @@ instance Value MSBuildValue where
     toMSBuildValue = id
 
 data MSBuildCondition = Leaf String
-                    | PropertyRef MSBuildProperty
-                    | ItemRef MSBuildItem
-                    | MetadataRef MSBuildItemMetadata
-                    | ValueRef MSBuildValue
-                    | Or MSBuildCondition MSBuildCondition
-                    | And MSBuildCondition MSBuildCondition
-                    | Equal MSBuildCondition MSBuildCondition
-                    | NotEqual MSBuildCondition MSBuildCondition
-                    | Exists MSBuildValue
-                    deriving (Show)
+                      | PropertyRef MSBuildProperty
+                      | ItemRef MSBuildItem
+                      | MetadataRef MSBuildItemMetadata
+                      | ValueRef MSBuildValue
+                      | Or MSBuildCondition MSBuildCondition
+                      | And MSBuildCondition MSBuildCondition
+                      | Equal MSBuildCondition MSBuildCondition
+                      | NotEqual MSBuildCondition MSBuildCondition
+                      | Exists MSBuildValue
+                      deriving (Show)
 
 class Condition a where
     toMSBuildCondition :: a -> MSBuildCondition
@@ -165,7 +196,7 @@ class Task a where
 instance Task MSBuildTask where
     toMSBuildTask = id
 
-data MSBuildTaskParameter = TaskParameter Type String
+data MSBuildTaskParameter = TaskParameter String
                           deriving (Show)
 
 class TaskParameter a where

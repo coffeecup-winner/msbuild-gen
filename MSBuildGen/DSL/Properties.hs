@@ -27,25 +27,27 @@ bool :: String -> DecsQ
 bool n = customBool n n
 
 customString :: String -> String -> DecsQ
-customString = property 'String
+customString = property ''TString
 
 customList :: String -> String -> DecsQ
-customList = property 'List
+customList = property ''TList
 
 customPath :: String -> String -> DecsQ
-customPath = property 'Path
+customPath = property ''TPath
 
 customBool :: String -> String -> DecsQ
-customBool = property 'Bool
+customBool = property ''TBool
 
 property :: Name -> String -> String -> DecsQ
 property t n v = simpleData n $ instances t n v
 
 instances :: Name -> String -> String -> DecsQ
-instances t n v = [d| instance Property $(propType) where toMSBuildProperty _ = Property $(typeExp) $(propNameExp)
+instances t n v = [d| instance Property $(propType) where toMSBuildProperty _ = Property $(propNameExp)
                       instance Value $(propType) where toMSBuildValue = toMSBuildValue . toMSBuildProperty
+                      instance Path $(propType) where toMSBuildPath = toMSBuildPath . toMSBuildProperty
                       instance Condition $(propType) where toMSBuildCondition = toMSBuildCondition . toMSBuildProperty
+                      type instance TypeOf $(propType) = $(typeType)
                   |]
     where propType = conT $ mkName n
           propNameExp = litE $ stringL v
-          typeExp = conE t
+          typeType = conT t

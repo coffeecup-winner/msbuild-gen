@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 module Examples.KnownProperties where
 
 import MSBuildGen.DSL.Properties
@@ -99,3 +100,4 @@ customBool "ClCompileGenerateXMLDocumentationFiles" "_ClCompileGenerateXMLDocume
 string "AdditionalSourcesText"
 bool "TargetingClr2Framework"
 path "TargetFrameworkMonikerAssemblyAttributesPath"
+path "MSBuildProjectFullPath"

@@ -1,5 +1,8 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ConstraintKinds #-}
 module MSBuildGen.Syntax where
 
 import Control.Monad.Free
@@ -24,16 +27,26 @@ instance Conditionable ItemGroupContent where
 instance Conditionable TargetContent where
     condition = TargetCondition
 
+type family CanAssignFrom a b where
+    CanAssignFrom TString TString = True
+    CanAssignFrom TString TPath = True
+    CanAssignFrom TList TList = True
+    CanAssignFrom TBool TBool = True
+    CanAssignFrom TPath TPath = True
+    CanAssignFrom TPath TString = True
+
+type CanAssign a b = (CanAssignFrom (TypeOf a) (TypeOf b) ~ True)
+
 class Functor ctx => Assignable lhs rhs ctx where
     (=:) :: lhs -> rhs -> Free ctx ()
 
-instance (Property p, Value v) => Assignable p v PropertyGroupContent where
+instance (Property p, Value v, CanAssign p v) => Assignable p v PropertyGroupContent where
     p =: v = liftF $ PropertyAssignment (toMSBuildProperty p) (toMSBuildValue v) ()
 
-instance (ItemMetadata m, Value v) => Assignable m v ItemDefinitionContent where
+instance (ItemMetadata m, Value v, CanAssign m v) => Assignable m v ItemDefinitionContent where
     m =: v = liftF $ MetadataAssignment (toMSBuildItemMetadata m) (toMSBuildValue v) ()
 
-instance (TaskParameter p, Value v) => Assignable p v TaskContent where
+instance (TaskParameter p, Value v, CanAssign p v) => Assignable p v TaskContent where
     p =: v = liftF $ TaskParameterAssignment (toMSBuildTaskParameter p) (toMSBuildValue v) ()
 
 class Functor ctx => DefinitionContext ctx where
@@ -81,8 +94,8 @@ i <:! v = \ctx -> liftF $ ItemInclude (toMSBuildItem i) (toMSBuildValue v) (Just
 (</:) :: (Item i, Value v) => i -> v -> ItemGroupContext
 i </: v = liftF $ ItemRemove (toMSBuildItem i) (toMSBuildValue v) ()
 
-include :: Value v => v -> ProjectContext
-include v = liftF $ Import (toMSBuildValue v) ()
+include :: Path p => p -> ProjectContext
+include p = liftF $ Import (toMSBuildPath p) ()
 
 exists :: Value v => v -> MSBuildCondition
 exists = Exists . toMSBuildValue
@@ -100,21 +113,14 @@ infix 8 <:
 infix 8 <:!
 infix 8 </:
 infix 9 ?
+infixr 3 <>
+infixr 3 \\
 
-switch :: (Property p) => p -> String -> SwitchContext -> PropertyGroupContext
-switch p n s = go s
-    where go (Free (SwitchCase k v next)) = (n === k) ? (p =: v) >> go next
-          go (Pure _) = Pure ()
+(\\) :: (Path a, Path b) => a -> b -> [MSBuildPath]
+a \\ b = (toMSBuildPath a) ++ [SeparatorPath] ++ (toMSBuildPath b)
 
-(-->) :: (Value k, Value v) => k -> v -> SwitchContext
-k --> v = liftF $ SwitchCase (toMSBuildValue k) (toMSBuildValue v) ()
-
-(\\) :: (Value a, Value b) => a -> b -> MSBuildValue
-a \\ b = go (toMSBuildValue a) (toMSBuildValue b)
-    where go (PathValue as) (PathValue bs) = PathValue (as ++ bs)
-          go (PathValue as) vb = PathValue (as ++ [vb])
-          go va (PathValue bs) = PathValue (va : bs)
-          go va vb = PathValue [va, vb]
+(<>) :: (Path a, Path b) => a -> b -> [MSBuildPath]
+a <> b = (toMSBuildPath a) ++ (toMSBuildPath b)
 
 using :: Task t => t -> String -> ProjectContext
 using t s = liftF $ UsingTask (toMSBuildTask t) s ()

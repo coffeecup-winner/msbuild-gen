@@ -127,11 +127,11 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
         item Lib $ do
             TrackerLogDirectory =? IntDir
             MinimalRebuildFromTracking =? True
-            OutputFile =? "$(OutDir)$(TargetName)$(TargetExt)"
+            OutputFile =? (OutDir <> TargetName <> TargetExt)
             SuppressStartupBanner =? True
             AcceptableNonZeroExitCodes_Metadata =? AcceptableNonZeroExitCodes
         item Midl $ do
-            TypeLibraryName =? "$(IntDir)$(ProjectName).tlb"
+            TypeLibraryName =? (IntDir <> ProjectName <> ".tlb")
             TargetEnvironment =? "Win32"
             WarningLevel =? "1"
             DefaultCharType =? "Signed"
@@ -148,9 +148,9 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
             ErrorCheckRefPointers =? False
             ErrorCheckStubData =? False
             StructMemberAlignment =? "NotSet"
-            HeaderFileName =? "%(Filename)_h.h"
+            HeaderFileName =? (Filename <> "_h.h")
         item ResourceCompile $ do
-            ResourceOutputFileName =? "$(IntDir)%(Filename).res"
+            ResourceOutputFileName =? (IntDir <> Filename <> ".res")
             Culture =? "0x0409"
             TrackerLogDirectory =? IntDir
             MinimalRebuildFromTracking =? True
@@ -164,16 +164,16 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
             GenerateCatalogFiles =? False
             UpdateFileHashes =? False
             (EmbedManifest === False) ? do
-                OutputManifestFile =: "$(TargetPath).manifest"
+                OutputManifestFile =: (TargetPath <> ".manifest")
             (EmbedManifest === True &&& EmbedManifestBy === "LINK") ? do
-                OutputManifestFile =: "$(IntDir)$(TargetName)$(TargetExt).embed.manifest"
+                OutputManifestFile =: (IntDir <> TargetName <> TargetExt <> ".embed.manifest")
         item ManifestResourceCompile $ do
-            ResourceOutputFileName =? "$(IntDir)$(TargetName)$(TargetExt).embed.manifest.res"
+            ResourceOutputFileName =? (IntDir <> TargetName <> TargetExt <> ".embed.manifest.res")
         item XdcMake $ do
             TrackerLogDirectory =? IntDir
             MinimalRebuildFromTracking =? True
             SuppressStartupBanner =? True
-            OutputFile =? "$(OutDir)$(TargetName).xml"
+            OutputFile =? (OutDir <> TargetName <> ".xml")
             AcceptableNonZeroExitCodes_Metadata =? AcceptableNonZeroExitCodes
             UseUnicodeResponseFiles =? True
             ValidateIntelliSense =? False
@@ -182,7 +182,7 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
             MinimalRebuildFromTracking =? True
             SuppressStartupBanner =? True
             PreserveSBR =? False
-            OutputFile =? "$(OutDir)$(TargetName).bsc"
+            OutputFile =? (OutDir <> TargetName <> ".bsc")
             AcceptableNonZeroExitCodes_Metadata =? AcceptableNonZeroExitCodes
         item XSD $ do
             TrackerLogDirectory =? IntDir
@@ -218,6 +218,6 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
         PostBuildEvent <: ProjectName
 
     -- <!-- Import Platform specific settings -->
-    (Platform !== "" &&& exists (VCTargetsPath \\ "Platforms" \\ Platform \\ "Microsoft.Cpp.$(Platform).props")) ? do
-        include (VCTargetsPath \\ "Platforms" \\ Platform \\ "Microsoft.Cpp.$(Platform).props")
+    (Platform !== "" &&& exists (VCTargetsPath \\ "Platforms" \\ Platform \\ "Microsoft.Cpp." <> Platform <> ".props")) ? do
+        include (VCTargetsPath \\ "Platforms" \\ Platform \\ "Microsoft.Cpp." <> Platform <> ".props")
 

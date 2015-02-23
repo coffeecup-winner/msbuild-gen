@@ -125,9 +125,9 @@ microsoft_build_steps_targets = project "Microsoft.BuildSteps.targets" $ do
 
         itemGroup $ do
             -- <!-- We only want to run our targets for vcxproj, not csproj.  This allows our us to target 3.5 toolset.-->
-            ("'%(CustomBuild.ExcludedFromBuild)'!='true' and ('%(CustomBuild.Extension)'=='.obj' or '%(CustomBuild.Extension)'=='.lib')") ? do
+            (ExcludedFromBuild !== True &&& (Extension === ".obj" ||| Extension === ".lib")) ? do
                 Link <: CustomBuild
-            ("'%(CustomBuild.ExcludedFromBuild)'!='true' and ('%(CustomBuild.Extension)'=='.obj' or '%(CustomBuild.Extension)'=='.lib')") ? do
+            (ExcludedFromBuild !== True &&& (Extension === ".obj" ||| Extension === ".lib")) ? do
                 Lib <: CustomBuild
 
             -- <!-- Remove CustomBuild ItemGroup that doesn't meet the condition. This prevents showing "Skipping target "CustomBuild" because it has no outputs. -->
@@ -158,8 +158,8 @@ microsoft_build_steps_targets = project "Microsoft.BuildSteps.targets" $ do
 
     propertyGroup $ do
         TLogLocation =: IntDir
-        LastBuildUnsuccessful =: "$(IntDir)$(ProjectName).unsuccessfulbuild"
-        LastBuildState =: "$(IntDir)$(ProjectName).lastbuildstate"
+        LastBuildUnsuccessful =: (IntDir <> ProjectName <> ".unsuccessfulbuild")
+        LastBuildState =: (IntDir <> ProjectName <> ".lastbuildstate")
 
 
     --   <!-- *******************************************************************************************

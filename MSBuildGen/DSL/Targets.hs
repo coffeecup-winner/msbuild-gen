@@ -49,22 +49,24 @@ bool :: String -> DecsQ
 bool n = customBool n n
 
 customString :: String -> String -> DecsQ
-customString = param 'String
+customString = param ''TString
 
 customList :: String -> String -> DecsQ
-customList = param 'List
+customList = param ''TList
 
 customPath :: String -> String -> DecsQ
-customPath = param 'Path
+customPath = param ''TPath
 
 customBool :: String -> String -> DecsQ
-customBool = param 'Bool
+customBool = param ''TBool
 
 param :: Name -> String -> String -> DecsQ
 param t n v = simpleData n $ paramInstances t n v
 
 paramInstances :: Name -> String -> String -> DecsQ
-paramInstances t n v = [d| instance TaskParameter $(paramType) where toMSBuildTaskParameter _ = TaskParameter $(typeExp) $(paramNameExp) |]
+paramInstances t n v = [d| instance TaskParameter $(paramType) where toMSBuildTaskParameter _ = TaskParameter $(paramNameExp)
+                           type instance TypeOf $(paramType) = $(typeType)
+                       |]
     where paramType = conT $ mkName n
           paramNameExp = litE $ stringL v
-          typeExp = conE t
+          typeType = conT t
