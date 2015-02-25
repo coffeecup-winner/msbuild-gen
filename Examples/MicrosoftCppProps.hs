@@ -26,23 +26,23 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
         TargetExt =: ""
 
     -- <!-- Specific values -->
-    (ConfigurationType === "Application") ? do
+    ConfigurationType === "Application" ? do
         propertyGroup $ do
             LinkCompiled =: True
             TargetExt =: ".exe"
             OutputType =: "exe"
 
-    (ConfigurationType === "DynamicLibrary") ? do
+    ConfigurationType === "DynamicLibrary" ? do
         propertyGroup $ do
             LinkCompiled =: True
             -- <!-- $(GenerateImportLib) should be set to true when you want to generate the import library as part of the BuildCompile pass rather than wait
             --      until the BuildLink pass for Linker to generate it. This allows circular dependencies between dlls to be satisfied when building using passes -->
-            (GenerateImportLib === True) ? do
+            GenerateImportLib === True ? do
                 ImpLibCompiled =: True
             TargetExt =: ".dll"
             OutputType =: "library"
 
-    (ConfigurationType === "StaticLibrary") ? do
+    ConfigurationType === "StaticLibrary" ? do
         propertyGroup $ do
             LibCompiled =: True
             TargetExt =: ".lib"
@@ -53,7 +53,7 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
         -- <!-- Local Windows debugger -->
         LocalDebuggerDebuggerType =: "Auto"
         -- <!-- LocalDebuggerCommand is defined into an empty $(TargetPath) for the property page, it is later redefined to its proper value. -->
-        (TargetPath !== "") ? do
+        TargetPath !== "" ? do
             LocalDebuggerCommand =: TargetPath
         LocalDebuggerWorkingDirectory =: ProjectDir
         LocalDebuggerMergeEnvironment =: True
@@ -70,7 +70,7 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
 
         -- <!-- MPI Cluster Debugger -->
         MpiDebuggerSchedulerNode =: "localhost/1"
-        (TargetPath !== "") ? do
+        TargetPath !== "" ? do
             MpiDebuggerApplicationCommand =: TargetFileName
         MpiDebuggerDebuggerType =: "Auto"
         MpiDebuggerNetworkSecurityMode =: "AnyAddress"
@@ -111,10 +111,10 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
         DocumentLibraryDependencies =? True
 
         -- <!-- CLR enabled -->
-        (EnableManagedIncrementalBuild === "" &&& CLRSupport !== "" &&& CLRSupport !== False) ? do
+        EnableManagedIncrementalBuild === "" &&& CLRSupport !== "" &&& CLRSupport !== False ? do
             EnableManagedIncrementalBuild =: True
         EnableManagedIncrementalBuild =? False
-        (IgnoreImportLibrary === "" &&& CLRSupport !== "" &&& CLRSupport !== False) ? do
+        IgnoreImportLibrary === "" &&& CLRSupport !== "" &&& CLRSupport !== False ? do
             IgnoreImportLibrary =: True
         IgnoreImportLibrary =? False
         GenerateManifest =? True
@@ -127,11 +127,11 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
         item Lib $ do
             TrackerLogDirectory =? IntDir
             MinimalRebuildFromTracking =? True
-            OutputFile =? (OutDir <> TargetName <> TargetExt)
+            OutputFile =? OutDir <> TargetName <> TargetExt
             SuppressStartupBanner =? True
             AcceptableNonZeroExitCodes_Metadata =? AcceptableNonZeroExitCodes
         item Midl $ do
-            TypeLibraryName =? (IntDir <> ProjectName <> ".tlb")
+            TypeLibraryName =? IntDir <> ProjectName <> ".tlb"
             TargetEnvironment =? "Win32"
             WarningLevel =? "1"
             DefaultCharType =? "Signed"
@@ -148,9 +148,9 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
             ErrorCheckRefPointers =? False
             ErrorCheckStubData =? False
             StructMemberAlignment =? "NotSet"
-            HeaderFileName =? (Filename <> "_h.h")
+            HeaderFileName =? Filename <> "_h.h"
         item ResourceCompile $ do
-            ResourceOutputFileName =? (IntDir <> Filename <> ".res")
+            ResourceOutputFileName =? IntDir <> Filename <> ".res"
             Culture =? "0x0409"
             TrackerLogDirectory =? IntDir
             MinimalRebuildFromTracking =? True
@@ -163,17 +163,17 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
             VerboseOutput =? True
             GenerateCatalogFiles =? False
             UpdateFileHashes =? False
-            (EmbedManifest === False) ? do
-                OutputManifestFile =: (TargetPath <> ".manifest")
-            (EmbedManifest === True &&& EmbedManifestBy === "LINK") ? do
-                OutputManifestFile =: (IntDir <> TargetName <> TargetExt <> ".embed.manifest")
+            EmbedManifest === False ? do
+                OutputManifestFile =: TargetPath <> ".manifest"
+            EmbedManifest === True &&& EmbedManifestBy === "LINK" ? do
+                OutputManifestFile =: IntDir <> TargetName <> TargetExt <> ".embed.manifest"
         item ManifestResourceCompile $ do
-            ResourceOutputFileName =? (IntDir <> TargetName <> TargetExt <> ".embed.manifest.res")
+            ResourceOutputFileName =? IntDir <> TargetName <> TargetExt <> ".embed.manifest.res"
         item XdcMake $ do
             TrackerLogDirectory =? IntDir
             MinimalRebuildFromTracking =? True
             SuppressStartupBanner =? True
-            OutputFile =? (OutDir <> TargetName <> ".xml")
+            OutputFile =? OutDir <> TargetName <> ".xml"
             AcceptableNonZeroExitCodes_Metadata =? AcceptableNonZeroExitCodes
             UseUnicodeResponseFiles =? True
             ValidateIntelliSense =? False
@@ -182,7 +182,7 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
             MinimalRebuildFromTracking =? True
             SuppressStartupBanner =? True
             PreserveSBR =? False
-            OutputFile =? (OutDir <> TargetName <> ".bsc")
+            OutputFile =? OutDir <> TargetName <> ".bsc"
             AcceptableNonZeroExitCodes_Metadata =? AcceptableNonZeroExitCodes
         item XSD $ do
             TrackerLogDirectory =? IntDir
@@ -197,7 +197,7 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
             MinimalRebuildFromTracking =? True
             AcceptableNonZeroExitCodes_Metadata =? AcceptableNonZeroExitCodes
         item ProjectReference $ do
-            (LinkLibraryDependencies === "" &&& ConfigurationType === "StaticLibrary") ? do
+            LinkLibraryDependencies === "" &&& ConfigurationType === "StaticLibrary" ? do
                 LinkLibraryDependencies =: False
             LinkLibraryDependencies =? True
             UseLibraryDependencyInputs =? False
@@ -218,6 +218,5 @@ microsoft_cpp_props = project "Microsoft.Cpp.props" $ do
         PostBuildEvent <: ProjectName
 
     -- <!-- Import Platform specific settings -->
-    (Platform !== "" &&& exists (VCTargetsPath \\ "Platforms" \\ Platform \\ "Microsoft.Cpp." <> Platform <> ".props")) ? do
+    Platform !== "" &&& exists (VCTargetsPath \\ "Platforms" \\ Platform \\ "Microsoft.Cpp." <> Platform <> ".props") ? do
         include (VCTargetsPath \\ "Platforms" \\ Platform \\ "Microsoft.Cpp." <> Platform <> ".props")
-

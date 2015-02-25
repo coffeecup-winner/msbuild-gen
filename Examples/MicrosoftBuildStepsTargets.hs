@@ -25,7 +25,7 @@ microsoft_build_steps_targets = project "Microsoft.BuildSteps.targets" $ do
 
     propertyGroup $ do
         --   <!-- CLRSupport = pure, safe, true etc are supported -->
-        (CLRSupport === "" ||| CLRSupport === "false" ||| CLRSupport === "oldsyntax") ? do
+        CLRSupport === "" ||| CLRSupport === "false" ||| CLRSupport === "oldsyntax" ? do
             GenerateTargetFrameworkAttribute =: False
         --   <!-- By default we do not want to build project to project references if they are disabled in the solution configuration -->
         OnlyReferenceAndBuildProjectsEnabledInSolutionConfiguration =? True
@@ -41,7 +41,7 @@ microsoft_build_steps_targets = project "Microsoft.BuildSteps.targets" $ do
     --     ============================================================
     --     -->
 
-    ("'$(GenerateTargetFrameworkAttribute)' == 'true'") ? do
+    GenerateTargetFrameworkAttribute === True ? do
         target GenerateTargetFrameworkMonikerAttribute $ do
             before "ClCompile"
             dependsOn ["PrepareForBuild", "GetReferenceAssemblyPaths"]
@@ -50,15 +50,14 @@ microsoft_build_steps_targets = project "Microsoft.BuildSteps.targets" $ do
 
             propertyGroup $ do
                 -- <!-- This attribute is only available in mscorlib v4 and later -->
-                (GenerateTargetFrameworkAttribute === True &&& TargetingClr2Framework !== True) ? do
-                    AdditionalSourcesText =: ( "$(AdditionalSourcesText)\r\n"
-                                            ++ "#using &lt;mscorlib.dll&gt;\r\n"
-                                            ++ "[assembly: System::Runtime::Versioning::TargetFrameworkAttribute(L&quot;$(TargetFrameworkMoniker)&quot;, FrameworkDisplayName=L&quot;$(TargetFrameworkMonikerDisplayName)&quot;)]%3b"
-                                             )
+                GenerateTargetFrameworkAttribute === True &&& TargetingClr2Framework !== True ? do
+                    AdditionalSourcesText =: "$(AdditionalSourcesText)\r\n"
+                                          ++ "#using &lt;mscorlib.dll&gt;\r\n"
+                                          ++ "[assembly: System::Runtime::Versioning::TargetFrameworkAttribute(L&quot;$(TargetFrameworkMoniker)&quot;, FrameworkDisplayName=L&quot;$(TargetFrameworkMonikerDisplayName)&quot;)]%3b"
 
             -- <!-- This is a file shared between projects so we have to take care to handle simultaneous writes (by ContinueOnError)
             --      and a race between clean from one project and build from another (by not adding to FilesWritten so it doesn't clean) -->
-            (AdditionalSourcesText !== "") ? do
+            AdditionalSourcesText !== "" ? do
                 run WriteLinesToFile $ do
                     File =: TargetFrameworkMonikerAssemblyAttributesPath
                     Lines =: AdditionalSourcesText
@@ -66,7 +65,7 @@ microsoft_build_steps_targets = project "Microsoft.BuildSteps.targets" $ do
                     Overwrite =: True
 
             itemGroup $ do
-                (ClCompile !== "" &&& AdditionalSourcesText !== "") ? do
+                ClCompile !== "" &&& AdditionalSourcesText !== "" ? do
                     ClCompile <:! TargetFrameworkMonikerAssemblyAttributesPath $ do
                         -- <!-- Since we didn't emit any necessary #include "stdafx.h" or similar -->
                         PrecompiledHeader =: "NotUsing"
@@ -103,19 +102,19 @@ microsoft_build_steps_targets = project "Microsoft.BuildSteps.targets" $ do
                           , "$(CleanDependsOn)"
                           ]
 
-    ("'$(_InvalidConfigurationWarning)' != 'true'") ? do
+    "'$(_InvalidConfigurationWarning)' != 'true'" ? do
         target Build $ do
             dependsOn ["_DetermineManagedStateFromCL", "$(BuildDependsOn)"]
             itemGroup $ do
-                (ManagedAssembly === True) ? do
+                ManagedAssembly === True ? do
                     ManagedTargetPath <: TargetPath
             returns ManagedTargetPath
 
-    ("'$(_InvalidConfigurationWarning)' != 'true'") ? do
+    "'$(_InvalidConfigurationWarning)' != 'true'" ? do
         target Rebuild $ do
             dependsOn ["_DetermineManagedStateFromCL", "$(RebuildDependsOn)"]
             itemGroup $ do
-                (ManagedAssembly === True) ? do
+                ManagedAssembly === True ? do
                     ManagedTargetPath <: TargetPath
             returns ManagedTargetPath
 
@@ -125,27 +124,27 @@ microsoft_build_steps_targets = project "Microsoft.BuildSteps.targets" $ do
 
         itemGroup $ do
             -- <!-- We only want to run our targets for vcxproj, not csproj.  This allows our us to target 3.5 toolset.-->
-            (ExcludedFromBuild !== True &&& (Extension === ".obj" ||| Extension === ".lib")) ? do
+            ExcludedFromBuild !== True &&& (Extension === ".obj" ||| Extension === ".lib") ? do
                 Link <: CustomBuild
-            (ExcludedFromBuild !== True &&& (Extension === ".obj" ||| Extension === ".lib")) ? do
+            ExcludedFromBuild !== True &&& (Extension === ".obj" ||| Extension === ".lib") ? do
                 Lib <: CustomBuild
 
             -- <!-- Remove CustomBuild ItemGroup that doesn't meet the condition. This prevents showing "Skipping target "CustomBuild" because it has no outputs. -->
-            (Command === "") ? do
+            Command === "" ? do
                 CustomBuildStep </: CustomBuildStep
-            (Command === "" ||| ExcludedFromBuild === True) ? do
+            Command === "" ||| ExcludedFromBuild === True ? do
                 CustomBuild </: CustomBuild
 
     target PrepareForRebuild $ do
         propertyGroup $ do
             BuildType =? "Rebuild"
-            ("%(ClCompile.GenerateXMLDocumentationFiles) == 'true'") ? do
+            "%(ClCompile.GenerateXMLDocumentationFiles) == 'true'" ? do
                 ClCompileGenerateXMLDocumentationFiles =: True
         -- <!-- We only want to run our targets for vcxproj, not csproj.  This allows our us to target 3.5 toolset.-->
         itemGroup $ do
-            (Command === "") ? do
+            Command === "" ? do
                 CustomBuildStep </: CustomBuildStep
-            (Command === "" ||| ExcludedFromBuild === True) ? do
+            Command === "" ||| ExcludedFromBuild === True ? do
                 CustomBuild </: CustomBuild
 
     target PrepareForClean $ do
@@ -158,8 +157,8 @@ microsoft_build_steps_targets = project "Microsoft.BuildSteps.targets" $ do
 
     propertyGroup $ do
         TLogLocation =: IntDir
-        LastBuildUnsuccessful =: (IntDir <> ProjectName <> ".unsuccessfulbuild")
-        LastBuildState =: (IntDir <> ProjectName <> ".lastbuildstate")
+        LastBuildUnsuccessful =: IntDir <> ProjectName <> ".unsuccessfulbuild"
+        LastBuildState =: IntDir <> ProjectName <> ".lastbuildstate"
 
 
     --   <!-- *******************************************************************************************

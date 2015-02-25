@@ -23,7 +23,7 @@ microsoft_cpp_default_props = project "Microsoft.Cpp.Default.props" $ do
     --     <!-- When the Framework Version is <= 3.5, set PlatformToolset to use the 9.0 toolset.
     --          When the Framework Version is >= 4.0, set PlatformToolset to use the 10.0 toolset.
     --          If Targetframeworkversion does not exist, then leave the default toolset -->
-        ("'$(PlatformToolset)' == '' and ('$(TargetFrameworkVersion)' == 'v3.5' or '$(TargetFrameworkVersion)' == 'v3.0' or '$(TargetFrameworkVersion)' == 'v2.0')") ? do
+        "'$(PlatformToolset)' == '' and ('$(TargetFrameworkVersion)' == 'v3.5' or '$(TargetFrameworkVersion)' == 'v3.0' or '$(TargetFrameworkVersion)' == 'v2.0')" ? do
             PlatformToolset =: "v90"
 
     --   <!-- This is the Cpp defaults settings mapping file. It defines all the project properties values
@@ -41,22 +41,22 @@ microsoft_cpp_default_props = project "Microsoft.Cpp.Default.props" $ do
     --   <!-- Default OutputPath -->
     propertyGroup $ do
         OutputPath =? OutDir
-        ("'$(OutputPath)' != '' and !HasTrailingSlash('$(OutputPath)')") ? do
-            OutputPath =: (OutputPath \\ "")
+        "'$(OutputPath)' != '' and !HasTrailingSlash('$(OutputPath)')" ? do
+            OutputPath =: OutputPath \\ ""
 
     propertyGroup $ do
         ProjectName =? MSBuildProjectName
-        (TargetName === "" &&& AssemblyName !== "") ? do
+        TargetName === "" &&& AssemblyName !== "" ? do
             TargetName =: AssemblyName
         ProjectFileName =? MSBuildProjectFile
         ProjectExt =? MSBuildProjectExtension
 
         ProjectDir =? MSBuildProjectDirectory
-        ProjectPath =? (ProjectDir <> ProjectFileName)
+        ProjectPath =? ProjectDir <> ProjectFileName
         PlatformName =? Platform
         SolutionDir =? ProjectDir
 
-        UserRootDir =? (LocalAppData \\ "Microsoft" \\ "MSBuild" \\ "v4.0")
+        UserRootDir =? LocalAppData \\ "Microsoft" \\ "MSBuild" \\ "v4.0"
 
         MSBuildAllProjects =: ["$(MSBuildAllProjects)", "$(MSBuildProjectFullPath)", "$(MSBuildToolsPath)\\Microsoft.Common.targets"]
         exists (MSBuildProjectFullPath <> ".user") ? do
@@ -72,4 +72,4 @@ microsoft_cpp_default_props = project "Microsoft.Cpp.Default.props" $ do
 
     itemDefinitionGroup $ do
         item BuildLog $ do
-            Path_Metadata =: (IntDir \\ MSBuildProjectName <> ".log")
+            Path_Metadata =: IntDir \\ MSBuildProjectName <> ".log"

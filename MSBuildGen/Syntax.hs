@@ -103,18 +103,18 @@ exists = Exists . toMSBuildValue
 (?) :: (Condition c, Conditionable a) => c -> Free a () -> Free a ()
 c ? p = liftF $ condition (toMSBuildCondition c) p ()
 
+infixr 0 ?
+infix 1 =:
+infix 1 =?
+infix 1 <:
+infix 1 <:!
+infix 1 </:
 infixr 2 |||
 infixr 3 &&&
 infix 4 ===
 infix 4 !==
-infix 8 =:
-infix 8 =?
-infix 8 <:
-infix 8 <:!
-infix 8 </:
-infix 9 ?
-infixr 3 <>
-infixr 3 \\
+infixr 4 \\
+infixr 5 <>
 
 (\\) :: (Path a, Path b) => a -> b -> [MSBuildPath]
 a \\ b = (toMSBuildPath a) ++ [SeparatorPath] ++ (toMSBuildPath b)

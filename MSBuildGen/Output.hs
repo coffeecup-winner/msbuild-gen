@@ -29,7 +29,7 @@ genContent' :: MSBuildCondition -> ProjectContext -> [Content]
 genContent' c (Free (Import s next)) = element "Import" [attr "Project" $ render () s, attr "Condition" $ render () c] [] : genContent next
 genContent' c (Free (PropertyGroup p next)) = element "PropertyGroup" [attr "Condition" $ render () c] (genPropertyGroup p) : genContent next
 genContent' c (Free (ItemGroup g next)) = element "ItemGroup" [attr "Condition" $ render () c] (genItemGroup g) : genContent next
-genContent' _ (Free (TargetDefinition n t next)) = element "Target" (attr "Name" (render () n) : genTargetAttrs t) (genTarget t) : genContent next
+genContent' c (Free (TargetDefinition n t next)) = element "Target" (attr "Name" (render () n) : attr "Condition" (render () c) : genTargetAttrs t) (genTarget t) : genContent next
 genContent' _ (Pure _) = []
 
 genPropertyGroup :: PropertyGroupContext -> [Content]
