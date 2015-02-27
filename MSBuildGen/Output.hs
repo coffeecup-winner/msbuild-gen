@@ -1,8 +1,8 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 module MSBuildGen.Output where
 
-import Control.Monad.Free
 import Data.List (intercalate)
 
 import Text.XML.Light
@@ -16,94 +16,95 @@ genProject :: Project -> Element
 genProject (Project _ p) = Element (qname "Project") [attr "xmlns" "http://schemas.microsoft.com/developer/msbuild/2003"] (genContent p) Nothing
 
 genContent :: ProjectContext -> [Content]
-genContent (Free (Import s next)) = element "Import" [attr "Project" $ render () s] [] : genContent next
-genContent (Free (PropertyGroup p next)) = element "PropertyGroup" [] (genPropertyGroup p) : genContent next
-genContent (Free (ItemDefinitionGroup g next)) = element "ItemDefinitionGroup" [] (genItemDefinitionGroup g) : genContent next
-genContent (Free (ItemGroup g next)) = element "ItemGroup" [] (genItemGroup g) : genContent next
-genContent (Free (UsingTask t s next)) = element "UsingTask" [attr "TaskName" $ render () t, attr "AssemblyName" s] [] : genContent next
-genContent (Free (TargetDefinition n t next)) = element "Target" (attr "Name" (render () n) : genTargetAttrs t) (genTarget t) : genContent next
-genContent (Free (Cond c p next)) = genContent' c p ++ genContent next
-genContent (Pure _) = []
+genContent = imap $ \case
+    Import s _ -> return $ element "Import" [attr "Project" $ render () s] []
+    PropertyGroup p _ -> return $ element "PropertyGroup" [] (genPropertyGroup p)
+    ItemDefinitionGroup g _ -> return $ element "ItemDefinitionGroup" [] (genItemDefinitionGroup g)
+    ItemGroup g _ -> return $ element "ItemGroup" [] (genItemGroup g)
+    UsingTask t s _ -> return $ element "UsingTask" [attr "TaskName" $ render () t, attr "AssemblyName" s] []
+    TargetDefinition n t _ -> return $ element "Target" (attr "Name" (render () n) : genTargetAttrs t) (genTarget t)
+    Cond c p _ -> genContent' c p
 
 genContent' :: MSBuildCondition -> ProjectContext -> [Content]
-genContent' c (Free (Import s next)) = element "Import" [attr "Project" $ render () s, attr "Condition" $ render () c] [] : genContent next
-genContent' c (Free (PropertyGroup p next)) = element "PropertyGroup" [attr "Condition" $ render () c] (genPropertyGroup p) : genContent next
-genContent' c (Free (ItemGroup g next)) = element "ItemGroup" [attr "Condition" $ render () c] (genItemGroup g) : genContent next
-genContent' c (Free (TargetDefinition n t next)) = element "Target" (attr "Name" (render () n) : attr "Condition" (render () c) : genTargetAttrs t) (genTarget t) : genContent next
-genContent' _ (Pure _) = []
+genContent' c = imap $ \case
+    Import s _ -> return $ element "Import" [attr "Project" $ render () s, attr "Condition" $ render () c] []
+    PropertyGroup p _ -> return $ element "PropertyGroup" [attr "Condition" $ render () c] (genPropertyGroup p)
+    ItemGroup g _ -> return $ element "ItemGroup" [attr "Condition" $ render () c] (genItemGroup g)
+    TargetDefinition n t _ -> return $ element "Target" (attr "Name" (render () n) : attr "Condition" (render () c) : genTargetAttrs t) (genTarget t)
 
 genPropertyGroup :: PropertyGroupContext -> [Content]
-genPropertyGroup (Free (PropertyAssignment p v next)) = element (render () p) [] [text $ render () v] : genPropertyGroup next
-genPropertyGroup (Free (PropertyCondition c p next)) = genPropertyGroup' c p ++ genPropertyGroup next
-genPropertyGroup (Pure _) = []
+genPropertyGroup = imap $ \case
+    PropertyAssignment p v _ -> return $ element (render () p) [] [text $ render () v]
+    PropertyCondition c p _ -> genPropertyGroup' c p
 
 genPropertyGroup' :: MSBuildCondition -> PropertyGroupContext -> [Content]
-genPropertyGroup' c (Free (PropertyAssignment p v next)) = element (render () p) [attr "Condition" $ render () c] [text $ render () v] : genPropertyGroup next
-genPropertyGroup' _ (Pure _) = []
+genPropertyGroup' c = imap $ \case
+    PropertyAssignment p v _ -> return $ element (render () p) [attr "Condition" $ render () c] [text $ render () v]
 
 genItemDefinitionGroup :: ItemDefinitionGroupContext -> [Content]
-genItemDefinitionGroup (Free (ItemDefinition i ms next)) = element (render () i) [] (genItemDefinition i ms) : genItemDefinitionGroup next
-genItemDefinitionGroup (Pure _) = []
+genItemDefinitionGroup = imap $ \case
+    ItemDefinition i ms _ -> return $ element (render () i) [] (genItemDefinition i ms)
 
 genItemDefinition :: MSBuildItem -> ItemDefinitionContext -> [Content]
-genItemDefinition i (Free (MetadataAssignment m v next)) = element (render () m) [] [text $ render () v] : genItemDefinition i next
-genItemDefinition i (Free (MetadataCondition c m next)) = genItemDefinition' i c m ++ genItemDefinition i next
-genItemDefinition _ (Pure _) = []
+genItemDefinition i = imap $ \case
+    MetadataAssignment m v _ -> return $ element (render () m) [] [text $ render () v]
+    MetadataCondition c m _ -> genItemDefinition' i c m
 
 genItemDefinition' :: MSBuildItem -> MSBuildCondition -> ItemDefinitionContext -> [Content]
-genItemDefinition' i c (Free (MetadataAssignment m v next)) = element (render () m) [attr "Condition" $ render i c] [text $ render () v] : genItemDefinition i next
+genItemDefinition' i c = imap $ \case
+    MetadataAssignment m v _ -> return $ element (render () m) [attr "Condition" $ render i c] [text $ render () v]
 
 genItemGroup :: ItemGroupContext -> [Content]
-genItemGroup (Free (ItemInclude i v Nothing next)) = element (render () i) [attr "Include" $ render () v] [] : genItemGroup next
-genItemGroup (Free (ItemInclude i v (Just ms) next)) = element (render () i) [attr "Include" $ render () v] (genItemDefinition i ms) : genItemGroup next
-genItemGroup (Free (ItemRemove i v next)) = element (render () i) [attr "Remove" $ render () v] [] : genItemGroup next
-genItemGroup (Free (ItemCondition c i next)) = genItemGroup' c i ++ genItemGroup next
-genItemGroup (Pure _) = []
+genItemGroup = imap $ \case
+    ItemInclude i v Nothing _ -> return $ element (render () i) [attr "Include" $ render () v] []
+    ItemInclude i v (Just ms) _ -> return $ element (render () i) [attr "Include" $ render () v] (genItemDefinition i ms)
+    ItemRemove i v _ -> return $ element (render () i) [attr "Remove" $ render () v] []
+    ItemCondition c i _ -> genItemGroup' c i
 
 genItemGroup' :: MSBuildCondition -> ItemGroupContext -> [Content]
-genItemGroup' c (Free (ItemInclude i (ItemValue v) Nothing next)) = element (render () i) [attr "Include" $ render () v, attr "Condition" $ render v c] [] : genItemGroup next
-genItemGroup' c (Free (ItemInclude i (PropertyValue v) Nothing next)) = element (render () i) [attr "Include" $ render () v, attr "Condition" $ render () c] [] : genItemGroup next
-genItemGroup' c (Free (ItemInclude i (ItemValue v) (Just ms) next)) = element (render () i) [attr "Include" $ render () v, attr "Condition" $ render v c] (genItemDefinition i ms) : genItemGroup next
-genItemGroup' c (Free (ItemInclude i (PropertyValue v) (Just ms) next)) = element (render () i) [attr "Include" $ render () v, attr "Condition" $ render () c] (genItemDefinition i ms) : genItemGroup next
-genItemGroup' c (Free (ItemRemove i (ItemValue v) next)) = element (render () i) [attr "Remove" $ render () v, attr "Condition" $ render v c] [] : genItemGroup next
-genItemGroup' c (Free (ItemRemove i (PropertyValue v) next)) = element (render () i) [attr "Remove" $ render () v, attr "Condition" $ render () c] [] : genItemGroup next
-genItemGroup' _ (Pure _) = []
+genItemGroup' c = imap $ \case
+    ItemInclude i (ItemValue v) Nothing _ -> return $ element (render () i) [attr "Include" $ render () v, attr "Condition" $ render v c] []
+    ItemInclude i (PropertyValue v) Nothing _ -> return $ element (render () i) [attr "Include" $ render () v, attr "Condition" $ render () c] []
+    ItemInclude i (ItemValue v) (Just ms) _ -> return $ element (render () i) [attr "Include" $ render () v, attr "Condition" $ render v c] (genItemDefinition i ms)
+    ItemInclude i (PropertyValue v) (Just ms) _ -> return $ element (render () i) [attr "Include" $ render () v, attr "Condition" $ render () c] (genItemDefinition i ms)
+    ItemRemove i (ItemValue v) _ -> return $ element (render () i) [attr "Remove" $ render () v, attr "Condition" $ render v c] []
+    ItemRemove i (PropertyValue v) _ -> return $ element (render () i) [attr "Remove" $ render () v, attr "Condition" $ render () c] []
 
 genTargetAttrs :: TargetContext -> [Attr]
-genTargetAttrs (Free (RunTask _ _ next)) = genTargetAttrs next
-genTargetAttrs (Free (TargetCondition _ _ next)) = genTargetAttrs next
-genTargetAttrs (Free (TargetBeforeTargets v next)) = attr "BeforeTargets" (render () v) : genTargetAttrs next
-genTargetAttrs (Free (TargetAfterTargets v next)) = attr "AfterTargets" (render () v) : genTargetAttrs next
-genTargetAttrs (Free (TargetDependsOn v next)) = attr "DependsOnTargets" (render () v) : genTargetAttrs next
-genTargetAttrs (Free (TargetInputs v next)) = attr "Inputs" (render () v) : genTargetAttrs next
-genTargetAttrs (Free (TargetOutputs v next)) = attr "Outputs" (render () v) : genTargetAttrs next
-genTargetAttrs (Free (TargetReturns v next)) = attr "Returns" (render () v) : genTargetAttrs next
-genTargetAttrs (Free (TargetPropertyGroup _ next)) = genTargetAttrs next
-genTargetAttrs (Free (TargetItemGroup _ next)) = genTargetAttrs next
-genTargetAttrs (Pure _) = []
+genTargetAttrs = imap $ \case
+    RunTask _ _ _ -> []
+    TargetCondition _ _ _ -> []
+    TargetBeforeTargets v _ -> return $ attr "BeforeTargets" (render () v)
+    TargetAfterTargets v _ -> return $ attr "AfterTargets" (render () v)
+    TargetDependsOn v _ -> return $ attr "DependsOnTargets" (render () v)
+    TargetInputs v _ -> return $ attr "Inputs" (render () v)
+    TargetOutputs v _ -> return $ attr "Outputs" (render () v)
+    TargetReturns v _ -> return $ attr "Returns" (render () v)
+    TargetPropertyGroup _ _ -> []
+    TargetItemGroup _ _ -> []
 
 genTarget :: TargetContext -> [Content]
-genTarget (Free (RunTask n t next)) = element (render () n) (genTask t) [] : genTarget next
-genTarget (Free (TargetCondition c t next)) = genTarget' c t ++ genTarget next
-genTarget (Free (TargetBeforeTargets _ next)) = genTarget next
-genTarget (Free (TargetAfterTargets _ next)) = genTarget next
-genTarget (Free (TargetDependsOn _ next)) = genTarget next
-genTarget (Free (TargetInputs _ next)) = genTarget next
-genTarget (Free (TargetOutputs _ next)) = genTarget next
-genTarget (Free (TargetReturns _ next)) = genTarget next
-genTarget (Free (TargetPropertyGroup g next)) = element "PropertyGroup" [] (genPropertyGroup g) : genTarget next
-genTarget (Free (TargetItemGroup g next)) = element "ItemGroup" [] (genItemGroup g) : genTarget next
-genTarget (Pure _) = []
+genTarget = imap $ \case
+    RunTask n t _ -> return $ element (render () n) (genTask t) []
+    TargetCondition c t _ -> genTarget' c t
+    TargetBeforeTargets _ _ -> []
+    TargetAfterTargets _ _ -> []
+    TargetDependsOn _ _ -> []
+    TargetInputs _ _ -> []
+    TargetOutputs _ _ -> []
+    TargetReturns _ _ -> []
+    TargetPropertyGroup g _ -> return $ element "PropertyGroup" [] (genPropertyGroup g)
+    TargetItemGroup g _ -> return $ element "ItemGroup" [] (genItemGroup g)
 
 genTarget' :: MSBuildCondition -> TargetContext -> [Content]
-genTarget' c (Free (RunTask n t next)) = element (render () n) ((attr "Condition" $ render () c) : genTask t) [] : genTarget next
-genTarget' c (Free (TargetPropertyGroup g next)) = element "PropertyGroup" [attr "Condition" $ render () c] (genPropertyGroup g) : genTarget next
-genTarget' c (Free (TargetItemGroup g next)) = element "ItemGroup" [attr "Condition" $ render () c] (genItemGroup g) : genTarget next
-genTarget' _ (Pure _) = []
+genTarget' c = imap $ \case
+    RunTask n t _ -> return $ element (render () n) ((attr "Condition" $ render () c) : genTask t) []
+    TargetPropertyGroup g _ -> return $ element "PropertyGroup" [attr "Condition" $ render () c] (genPropertyGroup g)
+    TargetItemGroup g _ -> return $ element "ItemGroup" [attr "Condition" $ render () c] (genItemGroup g)
 
 genTask :: TaskContext -> [Attr]
-genTask (Free (TaskParameterAssignment p v next)) = attr (render () p) (render () v) : genTask next
-genTask (Pure _) = []
+genTask = imap $ \case
+    TaskParameterAssignment p v _ -> return $ attr (render () p) (render () v)
 
 class Render a b where
     render :: a -> b -> String

@@ -12,7 +12,6 @@ type ItemDefinitionContext = Free ItemDefinitionContent ()
 type ItemGroupContext = Free ItemGroupContent ()
 type TargetContext = Free TargetContent ()
 type TaskContext = Free TaskContent ()
-type SwitchContext = Free SwitchCase ()
 
 data Project = Project String ProjectContext
 
@@ -55,11 +54,6 @@ data TargetContent next = RunTask MSBuildTask TaskContext next
 
 data TaskContent next = TaskParameterAssignment MSBuildTaskParameter MSBuildValue next
                       deriving (Show, Functor)
-
-data SwitchCase next = SwitchCase { caseKey :: MSBuildValue
-                                  , caseValue :: MSBuildValue
-                                  , caseNext :: next
-                                  } deriving (Show, Functor)
 
 data MSBuildProperty = Property String
                      deriving (Show)
@@ -204,3 +198,50 @@ class TaskParameter a where
 
 instance TaskParameter MSBuildTaskParameter where
     toMSBuildTaskParameter = id
+
+class Functor f => Iterable f where
+    next :: f (Free f a) -> Free f a
+
+imap :: Iterable f => (f (Free f a) -> [b]) -> Free f a -> [b]
+imap f (Free i) = f i ++ imap f (next i)
+imap _ (Pure _) = []
+
+instance Iterable ProjectContent where
+    next (Import _ n) = n
+    next (PropertyGroup _ n) = n
+    next (ItemDefinitionGroup _ n) = n
+    next (ItemGroup _ n) = n
+    next (UsingTask _ _ n) = n
+    next (TargetDefinition _ _ n) = n
+    next (Cond _ _ n) = n
+
+instance Iterable PropertyGroupContent where
+    next (PropertyAssignment _ _ n) = n
+    next (PropertyCondition _ _ n) = n
+
+instance Iterable ItemDefinitionGroupContent where
+    next (ItemDefinition _ _ n) = n
+
+instance Iterable ItemDefinitionContent where
+    next (MetadataAssignment _ _ n) = n
+    next (MetadataCondition _ _ n) = n
+
+instance Iterable ItemGroupContent where
+    next (ItemInclude _ _ _ n) = n
+    next (ItemRemove _ _ n) = n
+    next (ItemCondition _ _ n) = n
+
+instance Iterable TargetContent where
+    next (RunTask _ _ n) = n
+    next (TargetCondition _ _ n) = n
+    next (TargetBeforeTargets _ n) = n
+    next (TargetAfterTargets _ n) = n
+    next (TargetDependsOn _ n) = n
+    next (TargetInputs _ n) = n
+    next (TargetOutputs _ n) = n
+    next (TargetReturns _ n) = n
+    next (TargetPropertyGroup _ n) = n
+    next (TargetItemGroup _ n) = n
+
+instance Iterable TaskContent where
+    next (TaskParameterAssignment _ _ n) = n
